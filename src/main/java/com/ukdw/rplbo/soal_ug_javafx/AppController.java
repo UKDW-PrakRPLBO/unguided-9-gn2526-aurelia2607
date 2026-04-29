@@ -127,13 +127,60 @@ public class AppController {
         // ambil data dari attribute nilai_table
         // tips: target_col merujuk pada nama kolom di datbase sedangkan val adalah value yang di cari dari kolom tersebut misal:
         // target_col -> nim, val -> 71200001, maka kita mencari 71200001 di kolom nim
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        List<Nilai> list = nilai_table.fetch_all_nilai();
+        java.util.Map<String, Integer> countMap = new java.util.HashMap<>();
+        for (Nilai n : list) {
+            String targetValue = "";
+            if (target_col.equals("nim")) {
+                targetValue = n.getNIM();
+            } else if (target_col.equals("kode_mk")) {
+                targetValue = n.getKode_mk();
+            }
+
+            if (targetValue.equals(val)) {
+                String nilai = n.getNilai();
+                countMap.put(nilai, countMap.getOrDefault(nilai, 0) + 1);
+            }
+        }
+        for (String grade : countMap.keySet()) {
+            series.getData().add(new XYChart.Data<>(grade, countMap.get(grade)));
+        }
+        barchart.getData().clear();
+        barchart.getData().add(series);
     }
 
     public void update_linechart(String kode_mk) {
         // TODO: buatlah linechart yang menggambarkan nilai mean dari setiap angkatan
         // angkatan dapat di ambil dengan cara getAngkatan() pada entity Mahasiswa
         // tips: fetch dulu entity mahasiswa menggunakan fetch_mahasiswa_by_nim() di mhs_tabel menggunakan nim pada nilai_table
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        List<Nilai> list = nilai_table.fetch_all_nilai();
+        java.util.Map<String, java.util.List<Double>> angkatanMap = new java.util.HashMap<>();
 
+        for (Nilai n : list) {
+            if (n.getKode_mk().equals(kode_mk)) {
+
+                Mahasiswa mhs = mhs_table.fetch_mahasiswa_by_nim(n.getNIM());
+                String angkatan = String.valueOf(mhs.getAngkatan());
+                double nilaiAngka = n.get_converted_nilai();
+                angkatanMap.putIfAbsent(angkatan, new ArrayList<>());
+                angkatanMap.get(angkatan).add(nilaiAngka);
+            }
+        }
+        for (String angkatan : angkatanMap.keySet()) {
+            List<Double> nilaiList = angkatanMap.get(angkatan);
+
+            double sum = 0;
+            for (double v : nilaiList) {
+                sum += v;
+            }
+            double mean = sum / nilaiList.size();
+
+            series.getData().add(new XYChart.Data<>(angkatan, mean));
+        }
+        linechart.getData().clear();
+        linechart.getData().add(series);
     }
 
     public void update_piechart(String target_col, String val) {
@@ -142,5 +189,28 @@ public class AppController {
         // ambil data dari attribute nilai_table
         // tips: target_col merujuk pada nama kolom di datbase sedangkan val adalah value yang di cari dari kolom tersebut misal:
         // target_col -> nim, val -> 71200001, maka kita mencari 71200001 di kolom nim
+        List<Nilai> list = nilai_table.fetch_all_nilai();
+        java.util.Map<String, Integer> countMap = new java.util.HashMap<>();
+        for (Nilai n : list) {
+            String targetValue = "";
+
+            if (target_col.equals("nim")) {
+                targetValue = n.getNIM();
+            } else if (target_col.equals("kode_mk")) {
+                targetValue = n.getKode_mk();
+            }
+            if (targetValue.equals(val)) {
+                String nilai = n.getNilai();
+                countMap.put(nilai, countMap.getOrDefault(nilai, 0) + 1);
+            }
+        }
+        ObservableList<PieChart.Data> pieData = FXCollections.observableArrayList();
+
+        for (String grade : countMap.keySet()) {
+            int jumlah = countMap.get(grade);
+            pieData.add(new PieChart.Data(grade + " (" + jumlah + ")", jumlah));
+        }
+        piechart.setData(pieData);
+
     }
 }
